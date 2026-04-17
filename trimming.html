@@ -330,6 +330,12 @@
       <div class="opt-price">+¥1,100<span class="price-tax">（税込）</span></div>
     </div>
 
+    <div class="option-item" onclick="toggleOpt('dental_este')">
+      <div class="cb" id="cb_dental_este"></div>
+      <div class="opt-info"><div class="opt-name">デンタル＆エステコース</div></div>
+      <div class="opt-price">+¥1,650<span class="price-tax">（税込）</span></div>
+    </div>
+
     <div class="option-item" onclick="toggleBath('s')">
       <div class="cb" id="cb_bath_s"></div>
       <div class="opt-info">
@@ -432,7 +438,7 @@ const S = {
   spots:     1,         // 1|2
   tangle:    false,
   size:      's',       // 's'|'l'  ← プードルのみ有効
-  opts: { aquazeo:false, dental:false, skin:false, bath_s:false, bath_l:false, bath_es:false, bath_el:false },
+  opts: { aquazeo:false, dental:false, skin:false, dental_este:false, bath_s:false, bath_l:false, bath_es:false, bath_el:false },
 };
 
 /* ------------------------------------------------------------------ */
@@ -472,7 +478,8 @@ function basePrice() {
 function optsTotal() {
   let n = 0;
   if (S.opts.aquazeo) n += tax(500);   // 550
-  if (S.opts.dental)  n += tax(1000);  // 1100
+  if (S.opts.dental)       n += tax(1000);  // 1100
+  if (S.opts.dental_este) n += 1650;
   if (S.opts.skin)    n += tax(1000);  // 1100
   if (S.opts.bath_s)  n += tax(1500);  // 1650
   if (S.opts.bath_l)  n += tax(2000);  // 2200
@@ -608,7 +615,7 @@ function render() {
   document.getElementById('sizeL').className = 'toggle-btn' + (S.size === 'l' ? ' active' : '');
 
   /* options checkboxes */
-  ['aquazeo','dental','skin'].forEach(k => {
+  ['aquazeo','dental','skin','dental_este'].forEach(k => {
     document.getElementById('cb_' + k).className = 'cb' + (S.opts[k] ? ' checked' : '');
   });
   document.getElementById('cb_bath_s' ).className = 'cb' + (S.opts.bath_s  ? ' checked' : '');
