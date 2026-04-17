@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>持ち物チェックリスト</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+      background: #f5f5f7;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e5e5ea;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: 12px 16px 0;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1c1c1e;
+      padding-bottom: 12px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      background: #e5e5ea;
+      color: #6e6e73;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: #f5f5f7;
+      color: #007aff;
+      border-bottom: 2px solid #007aff;
+    }
+
+    main {
+      padding: 16px;
+      display: none;
+    }
+
+    main.active { display: block; }
+
+    .progress-bar-wrap {
+      background: #e5e5ea;
+      border-radius: 99px;
+      height: 6px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: #34c759;
+      border-radius: 99px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-label {
+      font-size: 13px;
+      color: #6e6e73;
+      margin-bottom: 6px;
+      text-align: right;
+    }
+
+    .category {
+      background: #fff;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .category-header {
+      padding: 12px 16px;
+      background: #f5f5f7;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6e6e73;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #e5e5ea;
+    }
+
+    .item {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid #f2f2f7;
+      cursor: pointer;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .item:last-child { border-bottom: none; }
+    .item:active { background: #f2f2f7; }
+
+    .item input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border: 2px solid #c7c7cc;
+      border-radius: 50%;
+      margin-right: 12px;
+      flex-shrink: 0;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .item input[type="checkbox"]:checked {
+      background: #34c759;
+      border-color: #34c759;
+    }
+
+    .item input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 6px;
+      width: 6px;
+      height: 10px;
+      border: 2px solid #fff;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg);
+    }
+
+    .item-label {
+      font-size: 16px;
+      color: #1c1c1e;
+      flex: 1;
+      transition: color 0.2s;
+      user-select: none;
+    }
+
+    .item.checked .item-label {
+      color: #aeaeb2;
+      text-decoration: line-through;
+    }
+
+    .reset-btn {
+      width: 100%;
+      padding: 14px;
+      background: #fff;
+      color: #ff3b30;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      transition: background 0.15s;
+    }
+
+    .reset-btn:active { background: #ffe5e3; }
+
+    .complete-banner {
+      background: #34c759;
+      color: #fff;
+      text-align: center;
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .complete-banner.show { display: block; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>持ち物チェックリスト</h1>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('travel')">旅行（冬）</button>
+    <button class="tab-btn" onclick="switchTab('badminton')">バドミントン</button>
+  </div>
+</header>
+
+<!-- 旅行（冬） -->
+<main id="travel" class="active">
+  <div class="complete-banner" id="travel-banner">✓ すべて準備完了！</div>
+  <p class="progress-label" id="travel-progress-label">0 / 18</p>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar" id="travel-progress-bar" style="width:0%"></div>
+  </div>
+
+  <div class="category">
+    <div class="category-header">衣類</div>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-上着"><span class="item-label">上着</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-ズボン"><span class="item-label">ズボン</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-下着"><span class="item-label">下着</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-靴下"><span class="item-label">靴下</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-タイツ"><span class="item-label">タイツ</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-パジャマ"><span class="item-label">パジャマ</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-ハンカチ"><span class="item-label">ハンカチ</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-手袋"><span class="item-label">手袋</span>
+    </label>
+  </div>
+
+  <div class="category">
+    <div class="category-header">デジタル・貴重品</div>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-財布"><span class="item-label">財布</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-スマホ"><span class="item-label">スマホ</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-スマホ充電器"><span class="item-label">スマホ充電器</span>
+    </label>
+  </div>
+
+  <div class="category">
+    <div class="category-header">スキンケア・メイク</div>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-メイク道具"><span class="item-label">メイク道具</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-メイク落とし洗顔"><span class="item-label">メイク落とし・洗顔</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-スキンケア"><span class="item-label">スキンケア</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-日焼け止め"><span class="item-label">日焼け止め</span>
+    </label>
+  </div>
+
+  <div class="category">
+    <div class="category-header">洗面</div>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-歯ブラシ"><span class="item-label">歯ブラシ</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-歯磨き粉"><span class="item-label">歯磨き粉</span>
+    </label>
+  </div>
+
+  <div class="category">
+    <div class="category-header">その他</div>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="travel-薬"><span class="item-label">薬</span>
+    </label>
+  </div>
+
+  <button class="reset-btn" onclick="resetTab('travel')">リセット</button>
+</main>
+
+<!-- バドミントン -->
+<main id="badminton">
+  <div class="complete-banner" id="badminton-banner">✓ すべて準備完了！</div>
+  <p class="progress-label" id="badminton-progress-label">0 / 5</p>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar" id="badminton-progress-bar" style="width:0%"></div>
+  </div>
+
+  <div class="category">
+    <div class="category-header">ギア</div>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="badminton-ラケット"><span class="item-label">ラケット</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="badminton-靴"><span class="item-label">靴</span>
+    </label>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="badminton-タオル"><span class="item-label">タオル</span>
+    </label>
+  </div>
+
+  <div class="category">
+    <div class="category-header">飲み物</div>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="badminton-水"><span class="item-label">水</span>
+    </label>
+  </div>
+
+  <div class="category">
+    <div class="category-header">デジタル</div>
+    <label class="item" onclick="toggle(this)">
+      <input type="checkbox" data-id="badminton-iPhone"><span class="item-label">iPhone</span>
+    </label>
+  </div>
+
+  <button class="reset-btn" onclick="resetTab('badminton')">リセット</button>
+</main>
+
+<script>
+  const TABS = {
+    travel: { total: 18 },
+    badminton: { total: 5 }
+  };
+
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem('checklist') || '{}'); }
+    catch { return {}; }
+  }
+
+  function saveState(state) {
+    localStorage.setItem('checklist', JSON.stringify(state));
+  }
+
+  function toggle(label) {
+    const cb = label.querySelector('input[type="checkbox"]');
+    // onclick fires before the checkbox actually changes, so we flip manually
+    cb.checked = !cb.checked;
+    label.classList.toggle('checked', cb.checked);
+
+    const state = loadState();
+    state[cb.dataset.id] = cb.checked;
+    saveState(state);
+
+    const tab = cb.dataset.id.split('-')[0];
+    updateProgress(tab);
+  }
+
+  function updateProgress(tab) {
+    const section = document.getElementById(tab);
+    const checkboxes = section.querySelectorAll('input[type="checkbox"]');
+    const checked = [...checkboxes].filter(c => c.checked).length;
+    const total = checkboxes.length;
+
+    document.getElementById(`${tab}-progress-label`).textContent = `${checked} / ${total}`;
+    document.getElementById(`${tab}-progress-bar`).style.width = `${(checked / total) * 100}%`;
+
+    const banner = document.getElementById(`${tab}-banner`);
+    banner.classList.toggle('show', checked === total);
+  }
+
+  function resetTab(tab) {
+    if (!confirm('チェックをすべてリセットしますか？')) return;
+    const state = loadState();
+    const section = document.getElementById(tab);
+    section.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.checked = false;
+      cb.closest('.item').classList.remove('checked');
+      delete state[cb.dataset.id];
+    });
+    saveState(state);
+    updateProgress(tab);
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('main').forEach(m => m.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // Restore state on load
+  (function init() {
+    const state = loadState();
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      if (state[cb.dataset.id]) {
+        cb.checked = true;
+        cb.closest('.item').classList.add('checked');
+      }
+    });
+    updateProgress('travel');
+    updateProgress('badminton');
+  })();
+</script>
+</body>
+</html>
