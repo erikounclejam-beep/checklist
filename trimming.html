@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>トリミング料金計算機</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #5B9E98;
+      --primary-light: #E8F5F3;
+      --text: #3D4C47;
+      --text-muted: #7D9490;
+      --border: #C8DFDB;
+      --bg: #EBF5F2;
+      --white: #FFFFFF;
+    }
+
+    body {
+      font-family: -apple-system, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 130px;
+    }
+
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 20px 16px 18px;
+      text-align: center;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 700; }
+    header p  { font-size: 0.74rem; opacity: 0.88; margin-top: 5px; }
+
+    .container {
+      max-width: 540px;
+      margin: 0 auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--white);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.07);
+    }
+    .card-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    /* ── Select ── */
+    .select-wrap { position: relative; }
+    select {
+      width: 100%;
+      padding: 12px 38px 12px 14px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--white);
+      -webkit-appearance: none;
+      appearance: none;
+      cursor: pointer;
+    }
+    select:focus { outline: none; border-color: var(--primary); }
+    .select-wrap::after {
+      content: '▾';
+      position: absolute;
+      right: 14px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px 6px;
+      border: none;
+      border-radius: 7px;
+      font-family: inherit;
+      font-size: 0.87rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-muted);
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: var(--white);
+      color: var(--primary);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    /* ── Toggle row ── */
+    .toggle-row { display: flex; gap: 8px; }
+    .toggle-btn {
+      flex: 1;
+      padding: 10px 8px;
+      border: 2px solid var(--border);
+      border-radius: 9px;
+      background: var(--white);
+      font-family: inherit;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--text);
+      line-height: 1.4;
+      text-align: center;
+    }
+    .toggle-btn.active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* ── Service option (radio-style) ── */
+    .service-list { display: flex; flex-direction: column; gap: 8px; }
+    .service-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 13px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .service-item.active { border-color: var(--primary); background: var(--primary-light); }
+    .radio-dot {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .service-item.active .radio-dot { border-color: var(--primary); background: var(--primary); }
+    .radio-dot::after {
+      content: ''; width: 7px; height: 7px;
+      border-radius: 50%; background: white; display: none;
+    }
+    .service-item.active .radio-dot::after { display: block; }
+    .service-name  { font-size: 0.92rem; font-weight: 500; flex: 1; }
+    .service-sub   { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+    .service-price { font-size: 0.95rem; font-weight: 700; color: var(--primary); white-space: nowrap; }
+    .price-tax     { font-size: 0.65rem; font-weight: 400; opacity: 0.75; }
+    .no-breed { font-size: 0.85rem; color: #bbb; text-align: center; padding: 10px 0; }
+
+    /* ── Divider / sub-label ── */
+    .divider { height: 1px; background: var(--border); margin: 14px 0; }
+    .sub-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; }
+
+    /* ── Condition row ── */
+    .condition-row { display: flex; gap: 14px; }
+    .condition-col { flex: 1; }
+
+    /* ── Options ── */
+    .option-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .option-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .option-item:first-child { padding-top: 0; }
+    .cb {
+      width: 22px; height: 22px;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .cb.checked { border-color: var(--primary); background: var(--primary); }
+    .cb.checked::after { content: '✓'; color: white; font-size: 13px; font-weight: 700; }
+    .opt-info { flex: 1; }
+    .opt-name  { font-size: 0.9rem; }
+    .opt-sub   { font-size: 0.73rem; color: var(--text-muted); margin-top: 1px; }
+    .opt-price { font-size: 0.9rem; font-weight: 700; color: var(--primary); white-space: nowrap; }
+
+    /* ── Total bar ── */
+    .total-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--primary);
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 -4px 20px rgba(74,144,217,0.35);
+    }
+    .total-label       { font-size: 0.82rem; opacity: 0.9; }
+    .total-note        { font-size: 0.7rem; opacity: 0.75; margin-top: 2px; }
+    .total-amount      { font-size: 1.75rem; font-weight: 700; }
+    .total-placeholder { font-size: 1rem; opacity: 0.75; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🐾 トリミング料金計算機</h1>
+  <p>料金は目安です。実際の料金はサイズ・被毛の状態により異なる場合があります</p>
+  <p style="margin-top:4px">MIXは体型・毛質が近い犬種をお選びください</p>
+</header>
+
+<div class="container">
+
+  <!-- 犬種 -->
+  <div class="card">
+    <div class="card-title">犬種を選ぶ</div>
+    <div class="select-wrap">
+      <select id="breedSelect" onchange="onBreedChange(this.value)">
+        <option value="">-- 犬種を選択してください --</option>
+        <option value="0:ミニチュア・ピンシャー">ミニチュア・ピンシャー</option>
+        <option value="1:チワワ">チワワ</option>
+        <option value="1:狆">狆</option>
+        <option value="2:パグ">パグ</option>
+        <option value="2:フレンチ・ブル">フレンチ・ブル</option>
+        <option value="3:パピヨン">パピヨン</option>
+        <option value="3:ダックス">ダックス</option>
+        <option value="4:ポメラニアン">ポメラニアン</option>
+        <option value="4:ペキニーズ">ペキニーズ</option>
+        <option value="5:マルチーズ">マルチーズ</option>
+        <option value="5:ヨークシャー・テリア">ヨークシャー・テリア</option>
+        <option value="6:シー・ズー">シー・ズー</option>
+        <option value="6:ミニチュア・シュナウザー">ミニチュア・シュナウザー</option>
+        <option value="6:プードル">プードル</option>
+        <option value="7:ビション・フリーゼ">ビション・フリーゼ</option>
+        <option value="7:ウエスティー">ウエスティー</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- サービス -->
+  <div class="card">
+    <div class="tabs">
+      <button class="tab-btn active" id="tabBtn0" onclick="switchTab(0)">シャンプー・全身カット</button>
+      <button class="tab-btn"        id="tabBtn1" onclick="switchTab(1)">部分カット</button>
+    </div>
+
+    <!-- Tab 0: シャンプー・全身カット -->
+    <div id="tabPane0">
+      <div class="service-list" id="serviceList">
+        <div class="no-breed">犬種を先に選んでください</div>
+      </div>
+      <div id="finishBlock" class="hidden">
+        <div class="divider"></div>
+        <div class="sub-label">仕上げタイプ</div>
+        <div class="service-list" id="finishList"></div>
+      </div>
+    </div>
+
+    <!-- Tab 1: 部分カット -->
+    <div id="tabPane1" class="hidden">
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px">シャンプーコース＋部分カットの合計料金を表示します</p>
+      <div class="toggle-row">
+        <button class="toggle-btn active" id="spot1Btn" onclick="setSpots(1)">1か所</button>
+        <button class="toggle-btn"        id="spot2Btn" onclick="setSpots(2)">2か所以上</button>
+      </div>
+    </div>
+
+    <!-- もつれ ＆ サイズ（プードルのみ） -->
+    <div class="divider"></div>
+    <div class="condition-row">
+      <div class="condition-col">
+        <div class="sub-label">もつれ</div>
+        <div class="toggle-row">
+          <button class="toggle-btn active" id="tangleOff" onclick="setTangle(false)">なし</button>
+          <button class="toggle-btn"        id="tangleOn"  onclick="setTangle(true)">あり</button>
+        </div>
+      </div>
+      <div class="condition-col" id="sizeCol">
+        <div class="sub-label">サイズ</div>
+        <div class="toggle-row">
+          <button class="toggle-btn active" id="sizeS" onclick="setSize('s')">小</button>
+          <button class="toggle-btn"        id="sizeL" onclick="setSize('l')">大 <small style="font-size:0.7rem">+¥550</small></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- オプション -->
+  <div class="card">
+    <div class="card-title">オプション</div>
+
+    <div class="option-item" onclick="toggleOpt('aquazeo')">
+      <div class="cb" id="cb_aquazeo"></div>
+      <div class="opt-info"><div class="opt-name">アクアゼオシャンプー</div></div>
+      <div class="opt-price">+¥550<span class="price-tax">（税込）</span></div>
+    </div>
+
+    <div class="option-item" onclick="toggleOpt('dental')">
+      <div class="cb" id="cb_dental"></div>
+      <div class="opt-info">
+        <div class="opt-name">デンタルケアコース</div>
+        <div class="opt-sub">アクアゼオシャンプー＆歯磨き</div>
+      </div>
+      <div class="opt-price">+¥1,100<span class="price-tax">（税込）</span></div>
+    </div>
+
+    <div class="option-item" onclick="toggleOpt('skin')">
+      <div class="cb" id="cb_skin"></div>
+      <div class="opt-info"><div class="opt-name">スキンケアエステコース</div></div>
+      <div class="opt-price">+¥1,100<span class="price-tax">（税込）</span></div>
+    </div>
+
+    <div class="option-item" onclick="toggleBath('s')">
+      <div class="cb" id="cb_bath_s"></div>
+      <div class="opt-info">
+        <div class="opt-name">アクアゼオ温浴（バスタブ小）</div>
+        <div class="opt-sub">アクアゼオシャンプー＆歯磨き付き</div>
+      </div>
+      <div class="opt-price">+¥1,650<span class="price-tax">（税込）</span></div>
+    </div>
+
+    <div class="option-item" onclick="toggleBath('l')">
+      <div class="cb" id="cb_bath_l"></div>
+      <div class="opt-info">
+        <div class="opt-name">アクアゼオ温浴（バスタブ大）</div>
+        <div class="opt-sub">アクアゼオシャンプー＆歯磨き付き</div>
+      </div>
+      <div class="opt-price">+¥2,200<span class="price-tax">（税込）</span></div>
+    </div>
+
+    <div class="option-item" onclick="toggleBath('es')">
+      <div class="cb" id="cb_bath_es"></div>
+      <div class="opt-info">
+        <div class="opt-name">温浴＋エステ（バスタブ小）</div>
+        <div class="opt-sub">アクアゼオシャンプー＆歯磨き付き</div>
+      </div>
+      <div class="opt-price">+¥2,200<span class="price-tax">（税込）</span></div>
+    </div>
+
+    <div class="option-item" onclick="toggleBath('el')">
+      <div class="cb" id="cb_bath_el"></div>
+      <div class="opt-info">
+        <div class="opt-name">温浴＋エステ（バスタブ大）</div>
+        <div class="opt-sub">アクアゼオシャンプー＆歯磨き付き</div>
+      </div>
+      <div class="opt-price">+¥2,750<span class="price-tax">（税込）</span></div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- 合計 -->
+<div class="total-bar">
+  <div>
+    <div class="total-label">推定合計金額</div>
+    <div class="total-note">※目安 / 税込</div>
+  </div>
+  <div id="totalDisplay" class="total-placeholder">犬種を選んでください</div>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ */
+/*  Data（すべて税抜き）                                                */
+/* ------------------------------------------------------------------ */
+const GROUPS = [
+  // 0: ミニチュア・ピンシャー（ハサミなし）
+  { shampoo:3000, cut:4500, quick:2000, finishes:['barikan'] },
+  // 1: チワワ / 狆
+  { shampoo:3000, cut:4500, quick:2000,
+    finishes:['barikan','hasami'], extras:{ hasami:1000 } },
+  // 2: パグ / フレンチ・ブル（ハサミなし）
+  { shampoo:3500, cut:5000, quick:2500, finishes:['barikan'] },
+  // 3: パピヨン / ダックス  （料金表より-500円）
+  { shampoo:3500, cut:5000, quick:2500,
+    finishes:['barikan','hasami'], extras:{ hasami:1000 } },
+  // 4: ポメラニアン / ペキニーズ  （料金表より-500円）
+  { shampoo:4000, cut:5500, quick:3000,
+    finishes:['barikan','hasami'], extras:{ hasami:1000 } },
+  // 5: マルチーズ / ヨークシャー・テリア
+  { shampoo:3500, cut:5000, quick:2000,
+    finishes:['barikan','hasami'], extras:{ hasami:1000 } },
+  // 6: シー・ズー / ミニチュア・シュナウザー / プードル
+  { shampoo:4000, cut:5500, quick:2500,
+    finishes:['barikan','barihasami','hasami'],
+    extras:{ barihasami:500, hasami:1000 } },
+  // 7: ビション・フリーゼ / ウエスティー
+  { shampoo:4500, cut:6000, quick:3000,
+    finishes:['barikan','hasami'], extras:{ hasami:1000 } },
+];
+
+const FINISH_LABEL = {
+  barikan:    'バリカン仕上げ',
+  barihasami: 'バリカン＆ハサミ',
+  hasami:     'ハサミ仕上げ',
+};
+
+// 部分カット 税抜き [1か所, 2か所以上]
+const PARTIAL_EX = [500, 1000];
+
+// 税込み計算（小数切り捨て）
+function tax(n) { return Math.floor(n * 1.1); }
+
+/* ------------------------------------------------------------------ */
+/*  State                                                               */
+/* ------------------------------------------------------------------ */
+const S = {
+  groupIdx:  null,
+  breedName: '',
+  tab:       0,         // 0=シャンプー・全身カット, 1=部分カット
+  service:   'shampoo', // 'shampoo'|'cut'|'quick'
+  finish:    'barikan',
+  spots:     1,         // 1|2
+  tangle:    false,
+  size:      's',       // 's'|'l'  ← プードルのみ有効
+  opts: { aquazeo:false, dental:false, skin:false, bath_s:false, bath_l:false, bath_es:false, bath_el:false },
+};
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                             */
+/* ------------------------------------------------------------------ */
+function fmt(n) { return '¥' + n.toLocaleString('ja-JP'); }
+
+// 税抜き基本料金を取得し、もつれ・プードルサイズを適用して税込みで返す
+function basePrice() {
+  if (S.groupIdx === null) return null;
+  const g = GROUPS[S.groupIdx];
+
+  let ex = 0; // 税抜き追加額
+
+  if (S.tab === 1) {
+    ex = g.shampoo + PARTIAL_EX[S.spots - 1];
+  } else if (S.service === 'shampoo') {
+    ex = g.shampoo;
+  } else if (S.service === 'quick') {
+    ex = g.quick;
+  } else if (S.service === 'cut') {
+    ex = g.cut;
+    if (S.finish !== 'barikan' && g.extras && g.extras[S.finish]) {
+      ex += g.extras[S.finish];
+    }
+  }
+
+  // もつれあり：税込み+1100円（税抜き+1000円）
+  if (S.tangle) ex += 1000;
+
+  // サイズ大：税込み+550円（税抜き+500円）
+  if (S.size === 'l') ex += 500;
+
+  return tax(ex);
+}
+
+function optsTotal() {
+  let n = 0;
+  if (S.opts.aquazeo) n += tax(500);   // 550
+  if (S.opts.dental)  n += tax(1000);  // 1100
+  if (S.opts.skin)    n += tax(1000);  // 1100
+  if (S.opts.bath_s)  n += tax(1500);  // 1650
+  if (S.opts.bath_l)  n += tax(2000);  // 2200
+  if (S.opts.bath_es) n += 2200;       // 温浴小+エステ
+  if (S.opts.bath_el) n += 2750;       // 温浴大+エステ
+  return n;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Event handlers                                                      */
+/* ------------------------------------------------------------------ */
+function onBreedChange(val) {
+  if (!val) {
+    S.groupIdx = null;
+    S.breedName = '';
+  } else {
+    const [idx, name] = val.split(':');
+    S.groupIdx  = parseInt(idx, 10);
+    S.breedName = name;
+    const g = GROUPS[S.groupIdx];
+    if (!g.finishes.includes(S.finish)) S.finish = 'barikan';
+  }
+  render();
+}
+
+function switchTab(t)  { S.tab = t;     render(); }
+function setService(sv){ S.service = sv; render(); }
+function setFinish(f)  { S.finish = f;   render(); }
+function setSpots(n)   { S.spots = n;    render(); }
+function setTangle(v)  { S.tangle = v;   render(); }
+function setSize(v)    { S.size = v;     render(); }
+
+function toggleOpt(k) {
+  S.opts[k] = !S.opts[k];
+  render();
+}
+
+// 温浴4種は排他選択
+function toggleBath(which) {
+  const key = 'bath_' + which;
+  const was = S.opts[key];
+  S.opts.bath_s = false;
+  S.opts.bath_l = false;
+  S.opts.bath_es = false;
+  S.opts.bath_el = false;
+  S.opts[key] = !was;
+  render();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Render                                                              */
+/* ------------------------------------------------------------------ */
+function render() {
+  const g = S.groupIdx !== null ? GROUPS[S.groupIdx] : null;
+
+  /* tabs */
+  document.getElementById('tabBtn0').className = 'tab-btn' + (S.tab === 0 ? ' active' : '');
+  document.getElementById('tabBtn1').className = 'tab-btn' + (S.tab === 1 ? ' active' : '');
+  document.getElementById('tabPane0').classList.toggle('hidden', S.tab !== 0);
+  document.getElementById('tabPane1').classList.toggle('hidden', S.tab !== 1);
+
+  /* service list */
+  if (S.tab === 0) {
+    if (!g) {
+      document.getElementById('serviceList').innerHTML =
+        '<div class="no-breed">犬種を先に選んでください</div>';
+      document.getElementById('finishBlock').classList.add('hidden');
+    } else {
+      // 税抜きベースを取得してもつれ・サイズを適用した税込みを表示
+      function displayPrice(base) {
+        let v = base;
+        if (S.tangle) v += 1000;
+        if (S.size === 'l') v += 500;
+        return tax(v);
+      }
+
+      const svcs = [
+        { id:'shampoo', name:'シャンプーコース',  price: displayPrice(g.shampoo) },
+        { id:'cut',     name:'全身カットコース',   price: displayPrice(g.cut), sub:'仕上げタイプを選択' },
+        { id:'quick',   name:'クイックシャンプー', price: displayPrice(g.quick), sub:'前回から1か月以内限定' },
+      ];
+
+      document.getElementById('serviceList').innerHTML = svcs.map(sv => `
+        <div class="service-item${S.service === sv.id ? ' active' : ''}"
+             onclick="setService('${sv.id}')">
+          <div class="radio-dot"></div>
+          <div style="flex:1">
+            <div class="service-name">${sv.name}</div>
+            ${sv.sub ? `<div class="service-sub">${sv.sub}</div>` : ''}
+          </div>
+          <div class="service-price">${fmt(sv.price)}<span class="price-tax">（税込）</span></div>
+        </div>`).join('');
+
+      /* finish block */
+      const showFinish = S.service === 'cut';
+      document.getElementById('finishBlock').classList.toggle('hidden', !showFinish);
+
+      if (showFinish) {
+        document.getElementById('finishList').innerHTML = g.finishes.map(f => {
+          const extraEx = (f !== 'barikan' && g.extras && g.extras[f]) ? g.extras[f] : 0;
+          let total = g.cut + extraEx;
+          if (S.tangle) total += 1000;
+          if (S.size === 'l') total += 500;
+          total = tax(total);
+          return `
+            <div class="service-item${S.finish === f ? ' active' : ''}"
+                 onclick="setFinish('${f}')">
+              <div class="radio-dot"></div>
+              <div style="flex:1">
+                <div class="service-name">${FINISH_LABEL[f]}</div>
+                ${extraEx > 0 ? `<div class="service-sub">+${fmt(tax(extraEx))}</div>` : ''}
+              </div>
+              <div class="service-price">${fmt(total)}<span class="price-tax">（税込）</span></div>
+            </div>`;
+        }).join('');
+      }
+    }
+  }
+
+  /* spots buttons */
+  const spotPrices = PARTIAL_EX.map(p => tax(p));
+  document.getElementById('spot1Btn').className = 'toggle-btn' + (S.spots === 1 ? ' active' : '');
+  document.getElementById('spot2Btn').className = 'toggle-btn' + (S.spots === 2 ? ' active' : '');
+  document.getElementById('spot1Btn').textContent = `1か所　+${fmt(spotPrices[0])}`;
+  document.getElementById('spot2Btn').textContent = `2か所以上　+${fmt(spotPrices[1])}`;
+
+  /* tangle */
+  document.getElementById('tangleOff').className = 'toggle-btn' + (!S.tangle ? ' active' : '');
+  document.getElementById('tangleOn' ).className = 'toggle-btn' + ( S.tangle ? ' active' : '');
+
+  /* size col: 全犬種表示 */
+  document.getElementById('sizeS').className = 'toggle-btn' + (S.size === 's' ? ' active' : '');
+  document.getElementById('sizeL').className = 'toggle-btn' + (S.size === 'l' ? ' active' : '');
+
+  /* options checkboxes */
+  ['aquazeo','dental','skin'].forEach(k => {
+    document.getElementById('cb_' + k).className = 'cb' + (S.opts[k] ? ' checked' : '');
+  });
+  document.getElementById('cb_bath_s' ).className = 'cb' + (S.opts.bath_s  ? ' checked' : '');
+  document.getElementById('cb_bath_l' ).className = 'cb' + (S.opts.bath_l  ? ' checked' : '');
+  document.getElementById('cb_bath_es').className = 'cb' + (S.opts.bath_es ? ' checked' : '');
+  document.getElementById('cb_bath_el').className = 'cb' + (S.opts.bath_el ? ' checked' : '');
+
+  /* total */
+  const bp = basePrice();
+  const totalEl = document.getElementById('totalDisplay');
+  if (bp === null) {
+    totalEl.className = 'total-placeholder';
+    totalEl.textContent = '犬種を選んでください';
+  } else {
+    totalEl.className = 'total-amount';
+    totalEl.textContent = fmt(bp + optsTotal());
+  }
+}
+
+render();
+</script>
+</body>
+</html>
