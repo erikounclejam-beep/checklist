@@ -281,7 +281,8 @@
       <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px">シャンプーコース＋部分カットの合計料金を表示します</p>
       <div class="toggle-row">
         <button class="toggle-btn active" id="spot1Btn" onclick="setSpots(1)">1か所</button>
-        <button class="toggle-btn"        id="spot2Btn" onclick="setSpots(2)">2か所以上</button>
+        <button class="toggle-btn"        id="spot2Btn" onclick="setSpots(2)">2か所〜</button>
+        <button class="toggle-btn"        id="spot3Btn" onclick="setSpots(3)">広範囲</button>
       </div>
     </div>
 
@@ -291,15 +292,17 @@
       <div class="condition-col">
         <div class="sub-label">もつれ</div>
         <div class="toggle-row">
-          <button class="toggle-btn active" id="tangleOff" onclick="setTangle(false)">なし</button>
-          <button class="toggle-btn"        id="tangleOn"  onclick="setTangle(true)">あり</button>
+          <button class="toggle-btn active" id="tangle0" onclick="setTangle(0)">なし</button>
+          <button class="toggle-btn"        id="tangle1" onclick="setTangle(1)">＋</button>
+          <button class="toggle-btn"        id="tangle2" onclick="setTangle(2)">＋＋</button>
         </div>
       </div>
       <div class="condition-col" id="sizeCol">
         <div class="sub-label">サイズ</div>
         <div class="toggle-row">
-          <button class="toggle-btn active" id="sizeS" onclick="setSize('s')">小</button>
-          <button class="toggle-btn"        id="sizeL" onclick="setSize('l')">大 <small style="font-size:0.7rem">+¥550</small></button>
+          <button class="toggle-btn active" id="sizeS"  onclick="setSize('s')">通常</button>
+          <button class="toggle-btn"        id="sizeL"  onclick="setSize('l')">L</button>
+          <button class="toggle-btn"        id="sizeLL" onclick="setSize('ll')">LL</button>
         </div>
       </div>
     </div>
@@ -420,8 +423,8 @@ const FINISH_LABEL = {
   hasami:     'ハサミ仕上げ',
 };
 
-// 部分カット 税抜き [1か所, 2か所以上]
-const PARTIAL_EX = [500, 1000];
+// 部分カット 税込み直接指定 [1か所, 2か所〜, 広範囲]
+const PARTIAL_INC = [550, 1100, 1500];
 
 // 税込み計算（小数切り捨て）
 function tax(n) { return Math.floor(n * 1.1); }
@@ -435,9 +438,9 @@ const S = {
   tab:       0,         // 0=シャンプー・全身カット, 1=部分カット
   service:   'shampoo', // 'shampoo'|'cut'|'quick'
   finish:    'barikan',
-  spots:     1,         // 1|2
-  tangle:    false,
-  size:      's',       // 's'|'l'  ← プードルのみ有効
+  spots:     1,         // 1|2|3
+  tangle:    0,         // 0|1|2
+  size:      's',       // 's'|'l'|'ll'
   opts: { aquazeo:false, dental:false, skin:false, dental_este:false, bath_s:false, bath_l:false, bath_es:false, bath_el:false },
 };
 
@@ -454,7 +457,11 @@ function basePrice() {
   let ex = 0; // 税抜き追加額
 
   if (S.tab === 1) {
-    ex = g.shampoo + PARTIAL_EX[S.spots - 1];
+    // 部分カットは PARTIAL_INC が税込み直接値なので別処理
+    const partInc = PARTIAL_INC[S.spots - 1];
+    let tangleInc = S.tangle * 1100;
+    let sizeInc   = S.size === 'll' ? 1100 : S.size === 'l' ? 550 : 0;
+    return tax(g.shampoo) + partInc + tangleInc + sizeInc;
   } else if (S.service === 'shampoo') {
     ex = g.shampoo;
   } else if (S.service === 'quick') {
@@ -466,11 +473,12 @@ function basePrice() {
     }
   }
 
-  // もつれあり：税込み+1100円（税抜き+1000円）
-  if (S.tangle) ex += 1000;
+  // もつれ：＋→+1000税抜き, ＋＋→+2000税抜き
+  ex += S.tangle * 1000;
 
-  // サイズ大：税込み+550円（税抜き+500円）
-  if (S.size === 'l') ex += 500;
+  // サイズ：L→+500税抜き, LL→+1000税抜き
+  if (S.size === 'l')  ex += 500;
+  if (S.size === 'll') ex += 1000;
 
   return tax(ex);
 }
@@ -551,8 +559,9 @@ function render() {
       // 税抜きベースを取得してもつれ・サイズを適用した税込みを表示
       function displayPrice(base) {
         let v = base;
-        if (S.tangle) v += 1000;
-        if (S.size === 'l') v += 500;
+        v += S.tangle * 1000;
+        if (S.size === 'l')  v += 500;
+        if (S.size === 'll') v += 1000;
         return tax(v);
       }
 
@@ -581,8 +590,9 @@ function render() {
         document.getElementById('finishList').innerHTML = g.finishes.map(f => {
           const extraEx = (f !== 'barikan' && g.extras && g.extras[f]) ? g.extras[f] : 0;
           let total = g.cut + extraEx;
-          if (S.tangle) total += 1000;
-          if (S.size === 'l') total += 500;
+          total += S.tangle * 1000;
+          if (S.size === 'l')  total += 500;
+          if (S.size === 'll') total += 1000;
           total = tax(total);
           return `
             <div class="service-item${S.finish === f ? ' active' : ''}"
@@ -600,19 +610,25 @@ function render() {
   }
 
   /* spots buttons */
-  const spotPrices = PARTIAL_EX.map(p => tax(p));
   document.getElementById('spot1Btn').className = 'toggle-btn' + (S.spots === 1 ? ' active' : '');
   document.getElementById('spot2Btn').className = 'toggle-btn' + (S.spots === 2 ? ' active' : '');
-  document.getElementById('spot1Btn').textContent = `1か所　+${fmt(spotPrices[0])}`;
-  document.getElementById('spot2Btn').textContent = `2か所以上　+${fmt(spotPrices[1])}`;
+  document.getElementById('spot3Btn').className = 'toggle-btn' + (S.spots === 3 ? ' active' : '');
+  document.getElementById('spot1Btn').textContent = `1か所　+${fmt(PARTIAL_INC[0])}`;
+  document.getElementById('spot2Btn').textContent = `2か所〜　+${fmt(PARTIAL_INC[1])}`;
+  document.getElementById('spot3Btn').textContent = `広範囲　+${fmt(PARTIAL_INC[2])}`;
 
   /* tangle */
-  document.getElementById('tangleOff').className = 'toggle-btn' + (!S.tangle ? ' active' : '');
-  document.getElementById('tangleOn' ).className = 'toggle-btn' + ( S.tangle ? ' active' : '');
+  document.getElementById('tangle0').className = 'toggle-btn' + (S.tangle === 0 ? ' active' : '');
+  document.getElementById('tangle1').className = 'toggle-btn' + (S.tangle === 1 ? ' active' : '');
+  document.getElementById('tangle2').className = 'toggle-btn' + (S.tangle === 2 ? ' active' : '');
 
-  /* size col: 全犬種表示 */
-  document.getElementById('sizeS').className = 'toggle-btn' + (S.size === 's' ? ' active' : '');
-  document.getElementById('sizeL').className = 'toggle-btn' + (S.size === 'l' ? ' active' : '');
+  /* size col: 全犬種表示、プードルのみラベル変更 */
+  const isPoodle = S.breedName === 'プードル';
+  document.getElementById('sizeS' ).className = 'toggle-btn' + (S.size === 's'  ? ' active' : '');
+  document.getElementById('sizeL' ).className = 'toggle-btn' + (S.size === 'l'  ? ' active' : '');
+  document.getElementById('sizeLL').className = 'toggle-btn' + (S.size === 'll' ? ' active' : '');
+  document.getElementById('sizeL' ).textContent = isPoodle ? 'L（33cm〜）' : 'L';
+  document.getElementById('sizeLL').textContent = isPoodle ? 'LL（38cm〜）' : 'LL';
 
   /* options checkboxes */
   ['aquazeo','dental','skin','dental_este'].forEach(k => {
