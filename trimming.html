@@ -21,7 +21,7 @@
       font-family: -apple-system, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding-bottom: 130px;
+      padding-top: 62px;
     }
 
     header {
@@ -204,14 +204,15 @@
     /* ── Total bar ── */
     .total-bar {
       position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: var(--primary);
+      top: 0; left: 0; right: 0;
+      background: #E8601A;
       color: white;
       padding: 14px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      box-shadow: 0 -4px 20px rgba(74,144,217,0.35);
+      box-shadow: 0 4px 20px rgba(232,96,26,0.35);
+      z-index: 100;
     }
     .total-label       { font-size: 0.82rem; opacity: 0.9; }
     .total-note        { font-size: 0.7rem; opacity: 0.75; margin-top: 2px; }
