@@ -306,6 +306,15 @@
         </div>
       </div>
     </div>
+
+    <!-- コース小計 -->
+    <div id="courseSummary" class="hidden" style="margin-top:12px; background:var(--primary-light); border:1.5px solid var(--border); border-radius:10px; padding:12px 16px;">
+      <div id="courseSummaryBreakdown" style="font-size:0.8rem; color:var(--text-muted); margin-bottom:4px;"></div>
+      <div style="display:flex; align-items:baseline; justify-content:space-between;">
+        <div style="font-size:0.82rem; color:var(--text);">コース小計（税込）</div>
+        <div id="courseSummaryAmount" style="font-size:1.5rem; font-weight:700; color:var(--primary);"></div>
+      </div>
+    </div>
   </div>
 
   <!-- オプション -->
@@ -558,11 +567,7 @@ function render() {
     } else {
       // 税抜きベースを取得してもつれ・サイズを適用した税込みを表示
       function displayPrice(base) {
-        let v = base;
-        v += S.tangle * 1000;
-        if (S.size === 'l')  v += 500;
-        if (S.size === 'll') v += 1000;
-        return tax(v);
+        return tax(base); // 基本料金のみ固定表示
       }
 
       const svcs = [
@@ -589,11 +594,7 @@ function render() {
       if (showFinish) {
         document.getElementById('finishList').innerHTML = g.finishes.map(f => {
           const extraEx = (f !== 'barikan' && g.extras && g.extras[f]) ? g.extras[f] : 0;
-          let total = g.cut + extraEx;
-          total += S.tangle * 1000;
-          if (S.size === 'l')  total += 500;
-          if (S.size === 'll') total += 1000;
-          total = tax(total);
+          let total = tax(g.cut + extraEx); // 基本料金のみ固定表示
           return `
             <div class="service-item${S.finish === f ? ' active' : ''}"
                  onclick="setFinish('${f}')">
@@ -630,6 +631,26 @@ function render() {
   document.getElementById('sizeL' ).textContent = isPoodle ? 'L（33cm〜）' : 'L';
   document.getElementById('sizeLL').textContent = isPoodle ? 'LL（38cm〜）' : 'LL';
 
+  /* コース小計ボックス */
+  const summaryEl = document.getElementById('courseSummary');
+  const bp = basePrice();
+  if (bp === null) {
+    summaryEl.classList.add('hidden');
+  } else {
+    summaryEl.classList.remove('hidden');
+    // 内訳テキスト生成
+    const tangleInc = S.tangle === 2 ? 2200 : S.tangle === 1 ? 1100 : 0;
+    const sizeInc   = S.size === 'll' ? 1100 : S.size === 'l' ? 550 : 0;
+    const parts = [];
+    if (S.tangle === 1) parts.push('もつれ＋ +¥1,100');
+    if (S.tangle === 2) parts.push('もつれ＋＋ +¥2,200');
+    if (S.size === 'l')  parts.push('サイズL +¥550');
+    if (S.size === 'll') parts.push('サイズLL +¥1,100');
+    document.getElementById('courseSummaryBreakdown').textContent =
+      parts.length > 0 ? parts.join('　') : '追加料金なし';
+    document.getElementById('courseSummaryAmount').textContent = fmt(bp);
+  }
+
   /* options checkboxes */
   ['aquazeo','dental','skin','dental_este'].forEach(k => {
     document.getElementById('cb_' + k).className = 'cb' + (S.opts[k] ? ' checked' : '');
@@ -640,7 +661,6 @@ function render() {
   document.getElementById('cb_bath_el').className = 'cb' + (S.opts.bath_el ? ' checked' : '');
 
   /* total */
-  const bp = basePrice();
   const totalEl = document.getElementById('totalDisplay');
   if (bp === null) {
     totalEl.className = 'total-placeholder';
