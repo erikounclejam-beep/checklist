@@ -595,16 +595,16 @@ function render() {
       if (showFinish) {
         document.getElementById('finishList').innerHTML = g.finishes.map(f => {
           const extraEx = (f !== 'barikan' && g.extras && g.extras[f]) ? g.extras[f] : 0;
-          let total = tax(g.cut + extraEx); // 基本料金のみ固定表示
+          const extraInc = tax(extraEx);
+          const extraLabel = extraInc === 0 ? '+¥0' : `+${fmt(extraInc)}`;
           return `
             <div class="service-item${S.finish === f ? ' active' : ''}"
                  onclick="setFinish('${f}')">
               <div class="radio-dot"></div>
               <div style="flex:1">
                 <div class="service-name">${FINISH_LABEL[f]}</div>
-                ${extraEx > 0 ? `<div class="service-sub">+${fmt(tax(extraEx))}</div>` : ''}
               </div>
-              <div class="service-price">${fmt(total)}<span class="price-tax">（税込）</span></div>
+              <div class="service-price">${extraLabel}<span class="price-tax">（税込）</span></div>
             </div>`;
         }).join('');
       }
