@@ -530,19 +530,22 @@ function setSpots(n)   { S.spots = n;    render(); }
 function setTangle(v)  { S.tangle = v;   render(); }
 function setSize(v)    { S.size = v;     render(); }
 
+// 全オプション排他選択（1つだけ選択可）
+function clearAllOpts() {
+  Object.keys(S.opts).forEach(k => S.opts[k] = false);
+}
+
 function toggleOpt(k) {
-  S.opts[k] = !S.opts[k];
+  const was = S.opts[k];
+  clearAllOpts();
+  S.opts[k] = !was;
   render();
 }
 
-// 温浴4種は排他選択
 function toggleBath(which) {
   const key = 'bath_' + which;
   const was = S.opts[key];
-  S.opts.bath_s = false;
-  S.opts.bath_l = false;
-  S.opts.bath_es = false;
-  S.opts.bath_el = false;
+  clearAllOpts();
   S.opts[key] = !was;
   render();
 }
